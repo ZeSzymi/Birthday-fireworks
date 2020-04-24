@@ -1,4 +1,11 @@
+let startShow = false;
 window.addEventListener('resize', resizeCanvas, false);
+document.getElementById('start').addEventListener('click', function() { 
+    this.style.opacity = '0';
+    startShow = true; 
+    document.getElementById('birthday').style.opacity = '100';
+    setTimeout(() => this.remove(), 1000);
+}, false);
 
 function resizeCanvas() {
         var canvas = document.getElementById('canvas');
@@ -10,6 +17,7 @@ resizeCanvas();
 function main(ctx) {
 
     let fireworkPackages = [];
+    let time = 0;
     var cw = window.innerWidth;
     var ch = window.innerHeight;
     canvas.width = window.innerWidth;
@@ -36,19 +44,23 @@ function main(ctx) {
     
     window.onmousedown=(function(e){handleMouseDown(e);});
     window.onmouseup=(function(e){handleMouseUp(e);});
-    //addFireworkPackages(10);
-    
-    // constantly running loop
-    // will animate bullet 
+
     function animate(time){
-        // return if there's no bullet to animate
-        //if(++fireworkPackageTest.pct>100){requestAnimationFrame(animate);return;}
-        // update
-        // draw
-        ctx.clearRect(0,0,cw,ch);
-        moveFireworkPackages()
-        // request another animation loop
+        if (startShow) {
+            ctx.clearRect(0,0,cw,ch);
+            addEveryXSeconds(100);
+            moveFireworkPackages()
+        }
         requestAnimationFrame(animate);
+    }
+
+    function addEveryXSeconds(x) {
+        if (time > x) {
+            createFireworkPackage(fireworkPackages.length, Math.floor(Math.random() * cw) + 200, Math.floor(Math.random() * ch), 0.4)
+            time = 0;
+        } else  {
+            time++;
+        }
     }
     
     function handleMouseDown(e){
@@ -56,11 +68,10 @@ function main(ctx) {
       e.preventDefault();
       e.stopPropagation();
       // save ending position
-      console.log(e.clientX, e.clientY)
       startX=parseInt(e.clientX-offsetX);
       startY=parseInt(e.clientY-offsetY);
       // set flag
-      createFireworkPackage(fireworkPackages.length, startX, startY);
+      createFireworkPackage(fireworkPackages.length, startX, startY, 1);
       pct=101;
     }
     
@@ -73,78 +84,100 @@ function main(ctx) {
       endY=parseInt(e.clientY-offsetY);
       dx=endX-startX;
       dy=endY-startY;
-      // set pct=0 to start animating
-      pct=0;
+
     }
 
     function drawFirework(firework) {
         ctx.beginPath();
         ctx.rect(firework.currentPoint.x, firework.currentPoint.y, firework.width, firework.height);
+        ctx.fillStyle = `#${firework.color}`;
         ctx.fill()
     }
 
     function moveFirework(firework, startPoint, pct) {
-        firework.currentPoint.x = startPoint.x + firework.path.dx*pct/100;
-        firework.currentPoint.y = startPoint.y + firework.path.dy*pct/100;
+        const coords = getXY(startPoint.x, firework.path.dx, startPoint.y, firework.path.dy, pct)
+        firework.currentPoint.x = coords.x
+        firework.currentPoint.y = coords.y;
     }
 
-    function createFirework(id, startPoint) {
+    function moveFireworkPackages() {
+        fireworkPackages = fireworkPackages.filter(package => package.pctFireworks <= 100);
+        fireworkPackages.forEach(package => {
+            if (!package.fireworksFired && package.pct > 100) {
+                addFireworks(package);
+                changeFireworks(package);
+                package.fireworksFired = true;
+            } else if (package.pct > 100) {
+                changeFireworks(package);
+            } else {
+                package.pct += package.velocity;
+                moveFirework(package, package.startPoint, package.pct);
+                drawFirework(package);
+            }
+        })
+    }
+
+    function changeFireworks(fireworkPackage) {
+        fireworkPackage.pctFireworks++;
+        fireworkPackage.fireworks.forEach(firework => {
+            moveFirework(firework, fireworkPackage.currentPoint, fireworkPackage.pctFireworks);
+            drawFirework(firework);
+        });
+    }
+
+    function getXY(startX, dx, startY, dy, percentage) {
+        const x = startX + dx * percentage/100;
+        const y = startY + dy * percentage/100;
+        return { x, y }
+    }
+
+    function createFirework(id, startPoint, color) {
         return {
             id,
             width: 3,
             height: 3,
-            velocityX: 0.2,
-            velocityY: 0.2,
+            velocity: 1,
+            color: color,
             path: {dx: 0, dy: 0},
             currentPoint: Object.assign({}, startPoint),
             finishPoint: getPoint(Math.floor(Math.random() * 140) + 50, Math.floor(Math.random() * 360), startPoint)
         }
     }
     
-    function createFireworkPackage(id, x, y) {
+    function createFireworkPackage(id, x, y, velocity) {
         const fireworkPackage = {
             id : id,
             fireworks : [],
-            fireworksAmount: Math.floor(Math.random() * 40) + 10,
-            startPoint: { x : x, y: y},
-            pct: 1
+            fireworksFired: false,
+            width: 5,
+            height: 5,
+            velocity: velocity,
+            fireworksAmount: Math.floor(Math.random() * 100) + 50,
+            finishPoint: { x: x, y: y},
+            startPoint: { x : x, y: ch},
+            currentPoint: { x : x, y: y},
+            color: Math.floor(Math.random() * 16777215).toString(16),
+            path: {dx: 0, dy: 0},
+            pct: 1,
+            pctFireworks: 1
         }
+        fireworkPackage.path.dx = fireworkPackage.finishPoint.x - fireworkPackage.startPoint.x
+        fireworkPackage.path.dy = fireworkPackage.finishPoint.y - fireworkPackage.startPoint.y
         addFireworks(fireworkPackage);
         fireworkPackages.push(fireworkPackage);
         return fireworkPackage;
     }
 
-    function addFireworkPackages(amount) {
-        for (var i = 0; i < amount; i++) { 
-            createFireworkPackage(i);
-        }
-    }
-
     function addFireworks(fireworkPackage) {
+        const color = Math.floor(Math.random() * 16777215).toString(16);
         for (let i = 0; i < fireworkPackage.fireworksAmount; i++) {
-            const firework = createFirework(i, fireworkPackage.startPoint);
-            firework.velocityX = firework.currentPoint.x > firework.finishPoint.x ? -0.2 : 0.2,
-            firework.path.dx = firework.finishPoint.x - fireworkPackage.startPoint.x
-            firework.path.dy = firework.finishPoint.y - fireworkPackage.startPoint.y
+            const firework = createFirework(i, fireworkPackage.currentPoint, color);
+            firework.path.dx = firework.finishPoint.x - fireworkPackage.currentPoint.x
+            firework.path.dy = firework.finishPoint.y - fireworkPackage.currentPoint.y
             fireworkPackage.fireworks.push(firework);
             drawFirework(firework);
         }
         return fireworkPackage;
-    }
-
-    function moveFireworkPackages() {
-        fireworkPackages = fireworkPackages.filter(package => package.pct <= 100);
-        fireworkPackages.forEach(package => {
-            changeFireworks(package);
-        })
-    }
-
-    function changeFireworks(fireworkPackage) {
-        fireworkPackage.pct++;
-        fireworkPackage.fireworks.forEach(firework => {
-            moveFirework(firework, fireworkPackage.startPoint, fireworkPackage.pct);
-            drawFirework(firework);
-        });
     }
 
     function getPoint(radius, angle, startPoint) {
