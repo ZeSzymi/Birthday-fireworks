@@ -50,7 +50,7 @@ function main(ctx) {
     function animate(time){
         if (startShow) {
             ctx.clearRect(0,0,cw,ch);
-            addEveryXTic(40);
+            addEveryXTic(30);
             moveFireworkPackages()
         }
         requestAnimationFrame(animate);
