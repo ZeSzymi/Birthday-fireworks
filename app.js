@@ -58,7 +58,7 @@ function main(ctx) {
 
     function addEveryXTic(x) {
         if (time > x) {
-            createFireworkPackage(fireworkPackages.length, Math.floor(Math.random() * cw) + 200, Math.floor(Math.random() * (ch - 400)), 1.5)
+            createFireworkPackage(fireworkPackages.length, Math.floor(Math.random() * cw - 200) + 200, Math.floor(Math.random() * (ch - 400)), 1.5)
             time = 0;
         } else  {
             time++;
@@ -67,7 +67,7 @@ function main(ctx) {
 
     function createStartingFireworkPackages(amount) {
         for (var i = 0; i < amount; i++) {
-            createFireworkPackage(fireworkPackages.length, Math.floor(Math.random() * cw) + 200, Math.floor(Math.random() * (ch - 400)), 1)
+            createFireworkPackage(fireworkPackages.length, Math.floor(Math.random() * cw - 200) + 200, Math.floor(Math.random() * (ch - 400)), 1)
         }
     }
     
